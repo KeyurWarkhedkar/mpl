@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Game Timer</title>
+</head>
+<body>
+<h2>Time Remaining: <span id="timer" th:text="${timeRemaining}"></span> seconds</h2>
+
+<script th:inline="javascript">
+    let time = /*[[${timeRemaining}]]*/ 0;
+
+    function updateTimer() {
+        if (time > 0) {
+            time--;
+            document.getElementById("timer").innerText = time;
+        }
+    }
+
+    setInterval(updateTimer, 1000); // decrease by 1 sec every 1000ms
+</script>
+</body>
+</html>
