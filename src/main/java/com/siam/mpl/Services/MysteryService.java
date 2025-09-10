@@ -8,8 +8,11 @@ import com.siam.mpl.Enums.QuestionStatus;
 import com.siam.mpl.Repositories.MysteryQuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import jakarta.transaction.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,11 +21,13 @@ public class MysteryService {
     //fields
     TeamDao teamDao;
     MysteryQuestionDao mysteryQuestionDao;
+    SimpMessagingTemplate simpMessagingTemplate;
 
     //dependency injection
-    public MysteryService(TeamDao teamDao, MysteryQuestionDao mysteryQuestionDao) {
+    public MysteryService(TeamDao teamDao, MysteryQuestionDao mysteryQuestionDao, SimpMessagingTemplate simpMessagingTemplate) {
         this.teamDao = teamDao;
         this.mysteryQuestionDao = mysteryQuestionDao;
+        this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
     //method to return mystery question from db and assign to a team
@@ -36,7 +41,6 @@ public class MysteryService {
         }
 
         Teams team = optionalTeam.get();
-
         //check if the team has already a question allotted to them
         if(team.getMysteryQuestion() == null) {
             List<MysteryQuestion> mysteryQuestions = mysteryQuestionDao.findByDifficultyAndQuestionStatus(mysteryBoxDto.getDifficulty(), QuestionStatus.UNALLOCATED);
@@ -47,7 +51,7 @@ public class MysteryService {
 
             MysteryQuestion mysteryQuestionToBeAllocated = mysteryQuestions.getFirst();
 
-            //assign the question ans set its status to ALLOCATED and save updated values to db
+            //assign the question and set its status to ALLOCATED and save updated values to db
             team.setMysteryQuestion(mysteryQuestionToBeAllocated);
             team.setPoints(team.getPoints() - mysteryBoxDto.getPointsDeducted());
             teamDao.save(team);
@@ -82,5 +86,36 @@ public class MysteryService {
         teamDao.save(quittingTeam);
 
         return "Question skipped successfully!";
+    }
+
+    //method to add bonus time to the team whose mystery question is solved
+    @Transactional
+    public String mysterySuccessHandle(MysteryCompletionDto mysteryCompletionDto) {
+        //get the team whose timer need to be updated
+        Optional<Teams> optionalTeam = teamDao.findByTeamName(mysteryCompletionDto.getTeamName());
+
+        if(optionalTeam.isEmpty()) {
+            throw new RuntimeException("No team with the given name found!");
+        }
+
+        Teams mysteryCompletedTeam = optionalTeam.get();
+
+        //set the mystery question of the team to be null so that the team can bid for new
+        //mystery questions
+        mysteryCompletedTeam.setMysteryQuestion(null);
+
+        //calculate the updated remaining time for the team
+        LocalDateTime startTime = mysteryCompletedTeam.getStartTime();
+        Duration timeCompleted = Duration.between(startTime, LocalDateTime.now());
+        Duration timeRemaining = Duration.ofMinutes(30).minus(timeCompleted);
+        Duration updatedTime = timeRemaining.plus(Duration.ofMinutes(5));
+
+        //send the updated time to the appropriate client
+        String destination = "/topic/time/" + mysteryCompletionDto.getTeamName().replace(" ","");
+        simpMessagingTemplate.convertAndSend(destination, updatedTime);
+
+        teamDao.save(mysteryCompletedTeam);
+
+        return "Congratulations! Your team just earned some bonus time.";
     }
 }
