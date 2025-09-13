@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Leaderboard</title>
+
+    <!-- Link to your glowing starry background CSS -->
+    <link rel="stylesheet" th:href="@{/AdminPortal.css}">
+</head>
+<body>
+<div class="main-container">
+    <div class="glow-card">
+        <!-- Make the title pop with a glow and maybe a short subtitle like “Top Performers”-->
+        <h2 class="card-title">🌟 Team Leaderboard 🌟</h2>
+        <p class="card-subtitle">Top Performers of the Season</p>
+
+        <div class="card-body">
+            <div class="leaderboard-header">
+                <span class="serial-col">No.</span>
+                <span class="team-col">Team Name</span>
+                <span class="points-col">Points</span>
+            </div>
+
+
+            <!-- Loop through teams from DB -->
+            <div th:each="team, iterStat : ${teams}" class="leaderboard-row">
+                <span class="serial-col" th:text="${iterStat.index + 1}">1</span>
+                <span class="team-col" th:text="${team.teamName}">Team Name</span>
+                <span class="points-col" th:text="${team.points}">0</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+/*Global Resets & Background */
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  font-family: "Montserrat", serif;
+  color: #c0d0ff;
+  background: radial-gradient(3px 3px at 20px 30px, #eee, rgba(0, 0, 0, 0)),
+            radial-gradient(3px 3px at 40px 70px, #fff, rgba(0, 0, 0, 0)),
+            radial-gradient(3px 3px at 50px 160px, #ddd, rgba(0, 0, 0, 0)),
+            radial-gradient(3px 3px at 90px 40px, #fff, rgba(0, 0, 0, 0)),
+            radial-gradient(3px 3px at 130px 80px, #fff, rgba(0, 0, 0, 0)),
+            radial-gradient(3px 3px at 160px 120px, #ddd, rgba(0, 0, 0, 0));
+
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  background-color: #050a19;
+  animation: move-stars 150s linear infinite;
+}
+
+/*Background Animation */
+/Defines how the starry background scrolls diagonally/
+@keyframes move-stars {
+  from { background-position: 0 0; }
+  to { background-position: -10000px 5000px; }
+}
+
+/*Layout Container */
+.main-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/Glow Card (Glassmorphic Box)/
+.glow-card {
+  background-color: rgba(10, 25, 47, 0.85);
+  border: 1px solid rgba(0, 170, 255, 0.7);
+  border-radius: 20px;
+  padding: 3rem;          /* increased padding */
+  width: 100%;
+  max-width: 800px;       /* was 450px, now bigger for desktop */
+  min-height: 600px;      /* new: makes the card taller */
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 25px rgba(0, 170, 255, 0.4),
+              inset 0 0 12px rgba(0, 170, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+
+
+/Card Content/
+.card-body {
+  padding: 0;
+}
+
+.card-title {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #e0eaff;
+  text-shadow: 0 0 6px rgba(0, 213, 255, 0.5);
+}
+
+/Form Fields/
+/* Groups each input + label */
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+/* Labels appear above inputs with spacing */
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+/* Inputs look transparent with glowing underline instead of full box.*/
+.form-group input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 170, 255, 0.4); /* underline effect */
+  padding: 0.5rem 0;
+  font-size: 1.1rem;
+  color: #ffffff;
+  font-family: "Cinzel", serif;
+  transition: all 0.3s ease;
+}
+/* When focused: underline glows cyan + slight shadow */
+.form-group input:focus {
+  outline: none;
+  border-bottom-color: rgba(0, 213, 255, 0.8);
+  box-shadow: 0 4px 10px -8px rgba(0, 213, 255, 0.5);
+}
+
+/Button Styling/
+/*Creates a pill-shaped glowing gradient button */
+.glow-button:hover,
+.glow-button:focus {
+  transform: scale(1.03);
+  box-shadow: 0 0 12px rgba(0, 195, 255, 0.9);
+  color: #fff;
+  outline: none;
+}
+
+/*Remove Number Input Arrows */
+/*Removes the up/down arrows on <input type="number"> */
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* it’s a leaderboard, a table-like structure is best.*/
+/* Leaderboard Header Row */
+/* Leaderboard Header */
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 2px solid rgba(0, 213, 255, 0.5);
+  font-weight: 700;
+  color: #00d5ff;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+/* Leaderboard Rows */
+.leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(0, 213, 255, 0.2);
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.leaderboard-row:hover {
+  transform: scale(1.02);
+  background: rgba(0, 213, 255, 0.08);
+  box-shadow: 0 0 10px rgba(0, 213, 255, 0.4);
+}
+
+/* Columns */
+.serial-col {
+  width: 60px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.team-col {
+  flex: 1;
+  padding-left: 10px;
+}
+
+.points-col {
+  width: 100px;
+  text-align: right;
+  font-family: "Cinzel", serif;
+  color: #e0eaff;
+}
+
+/* 🥇🥈🥉 Highlight Top 3 */
+.leaderboard-row.first {
+  background: rgba(255, 215, 0, 0.15);
+  color: gold;
+  font-weight: 700;
+  text-shadow: 0 0 8px gold;
+}
+
+.leaderboard-row.second {
+  background: rgba(192, 192, 192, 0.15);
+  color: silver;
+  font-weight: 600;
+  text-shadow: 0 0 8px silver;
+}
+
+.leaderboard-row.third {
+  background: rgba(205, 127, 50, 0.15);
+  color: #cd7f32;
+  font-weight: 600;
+  text-shadow: 0 0 8px #cd7f32;
+}
+
+
+/*title pop with a glow and maybe a short subtitle like “Top Performers” */
+.card-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: #e0eaff;
+  text-shadow: 0 0 10px rgba(0, 213, 255, 0.8);
+}
+
+.card-subtitle {
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  color: #9bbcff;
+  font-style: italic;
+}
+
+/Glowing Animation for Card/
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 213, 255, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(0, 213, 255, 0.6); }
+}
+
+.glow-card {
+  animation: pulse-glow 3s infinite;
+}

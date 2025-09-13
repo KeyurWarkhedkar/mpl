@@ -5,8 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class MysteryBoxDto {
+public class TeamUpdateDto {
     private String teamName;
-    private String difficulty;
-    private int pointsDeducted;
+    private Integer points;
+    private Integer mysteryQuestionId;
 }

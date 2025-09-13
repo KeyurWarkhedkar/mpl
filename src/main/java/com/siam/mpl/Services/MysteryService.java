@@ -2,6 +2,7 @@ package com.siam.mpl.Services;
 
 import com.siam.mpl.DTOs.MysteryBoxDto;
 import com.siam.mpl.DTOs.MysteryCompletionDto;
+import com.siam.mpl.DTOs.NewMysteryDto;
 import com.siam.mpl.Entities.MysteryQuestion;
 import com.siam.mpl.Entities.Teams;
 import com.siam.mpl.Enums.QuestionStatus;
@@ -117,5 +118,34 @@ public class MysteryService {
         teamDao.save(mysteryCompletedTeam);
 
         return "Congratulations! Your team just earned some bonus time.";
+    }
+
+    //method to add a mystery question
+    @Transactional
+    public MysteryQuestion addMysteryQuestion(NewMysteryDto newMysteryDto) {
+        MysteryQuestion mysteryQuestion = new MysteryQuestion();
+        mysteryQuestion.setQuestion(newMysteryDto.getQuestion());
+        mysteryQuestion.setDifficulty(newMysteryDto.getDifficulty());
+        mysteryQuestion.setQuestionStatus(QuestionStatus.UNALLOCATED);
+        return mysteryQuestionDao.save(mysteryQuestion);
+    }
+
+    //method to remove a mystery question
+    @Transactional
+    public MysteryQuestion removeMysteryQuestion(int questionId) {
+        Optional<MysteryQuestion> optionalMysteryQuestion = mysteryQuestionDao.findById(questionId);
+        if(optionalMysteryQuestion.isEmpty()) {
+            throw new RuntimeException("No question with the given id exists!");
+        }
+
+        MysteryQuestion questionToBeRemoved = optionalMysteryQuestion.get();
+
+        if(questionToBeRemoved.getQuestionStatus().equals(QuestionStatus.ALLOCATED)) {
+            throw new RuntimeException("This question is already allotted to a team!");
+        }
+
+        mysteryQuestionDao.delete(questionToBeRemoved);
+
+        return questionToBeRemoved;
     }
 }
