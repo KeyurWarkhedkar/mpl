@@ -26,5 +26,5 @@ public class Teams {
     @JoinColumn(name = "mystery_question")
     private MysteryQuestion mysteryQuestion;
 
-    private LocalDateTime startTime;
+    private LocalDateTime endTime;
 }

@@ -10,10 +10,13 @@ import com.siam.mpl.Repositories.QuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import com.siam.mpl.Repositories.TeamQuestionDao;
 import jakarta.transaction.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -72,14 +75,28 @@ public class QuestionService {
         Teams newTeam = new Teams();
         newTeam.setTeamName(teamName);
         newTeam.setPoints(100);
-        newTeam.setStartTime(LocalDateTime.now());
-        teamDao.save(newTeam);
+        newTeam.setEndTime(LocalDateTime.now().plus(Duration.ofMinutes(30)));
+
+        //check for concurrent transactions passing the initial check
+        //unique constraint acting as last line of defence
+        try {
+            teamDao.save(newTeam);
+        } catch(DataIntegrityViolationException ex) {
+            throw new RuntimeException("Team with this name already exists!");
+        }
 
         //assign the new team a question
         TeamQuestion newTeamQuestion = new TeamQuestion();
         newTeamQuestion.setTeam(newTeam);
         newTeamQuestion.setQuestion(question);
-        teamQuestionDao.save(newTeamQuestion);
+
+        //check for concurrent transactions passing the initial check
+        //unique constraint acting as last line of defence
+        try {
+            teamQuestionDao.save(newTeamQuestion);
+        } catch(DataIntegrityViolationException exception) {
+            throw new RuntimeException("This question is already allotted to a team!");
+        }
     }
 
     //method to add a new question
@@ -134,5 +151,16 @@ public class QuestionService {
         }
 
         return questionDao.save(questionForUpdate);
+    }
+
+    //method to get all questions
+    @Transactional
+    public List<Question> getAllQuestions() {
+        List<Question> questions = questionDao.findAll();
+        if(questions.isEmpty()) {
+            throw new RuntimeException("No questions found!");
+        } else {
+            return questions;
+        }
     }
 }

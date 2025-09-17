@@ -45,7 +45,7 @@ public class TeamController {
     }
 
     //method to get all teams in the db
-    @GetMapping(value="/team/getALl")
+    @GetMapping(value="/team/getAll")
     public ResponseEntity<List<Teams>> getAllTeams() {
         return new ResponseEntity<>(teamService.getAllTeams(), HttpStatus.OK);
     }

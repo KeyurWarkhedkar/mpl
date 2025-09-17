@@ -9,6 +9,7 @@ import com.siam.mpl.Enums.QuestionStatus;
 import com.siam.mpl.Repositories.MysteryQuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import jakarta.transaction.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -55,10 +56,19 @@ public class MysteryService {
             //assign the question and set its status to ALLOCATED and save updated values to db
             team.setMysteryQuestion(mysteryQuestionToBeAllocated);
             team.setPoints(team.getPoints() - mysteryBoxDto.getPointsDeducted());
-            teamDao.save(team);
+            try {
+                teamDao.save(team);
+            } catch(DataIntegrityViolationException ex) {
+                throw new RuntimeException("A team with this id already exists!");
+            }
 
             mysteryQuestionToBeAllocated.setQuestionStatus(QuestionStatus.ALLOCATED);
-            mysteryQuestionDao.save(mysteryQuestionToBeAllocated);
+
+            try {
+                mysteryQuestionDao.save(mysteryQuestionToBeAllocated);
+            } catch(DataIntegrityViolationException ex) {
+                return team.getMysteryQuestion();
+            }
 
             return mysteryQuestionToBeAllocated;
         } else {
@@ -102,14 +112,22 @@ public class MysteryService {
         Teams mysteryCompletedTeam = optionalTeam.get();
 
         //set the mystery question of the team to be null so that the team can bid for new
-        //mystery questions
+        //mystery questions.
         mysteryCompletedTeam.setMysteryQuestion(null);
 
         //calculate the updated remaining time for the team
-        LocalDateTime startTime = mysteryCompletedTeam.getStartTime();
-        Duration timeCompleted = Duration.between(startTime, LocalDateTime.now());
-        Duration timeRemaining = Duration.ofMinutes(30).minus(timeCompleted);
-        Duration updatedTime = timeRemaining.plus(Duration.ofMinutes(5));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = mysteryCompletedTeam.getEndTime();
+        Duration timeRemaining = Duration.between(now, endTime);
+        if(timeRemaining.isNegative()) {
+            throw new RuntimeException("You have exhausted your time for the main question!");
+        }
+
+        //also update the end time for the team for successful handle of next bonus updates before saving
+        mysteryCompletedTeam.setEndTime(endTime.plus(Duration.ofMinutes(5)));
+
+        //get the new remaining time for the team
+        Duration updatedTime = Duration.between(now, mysteryCompletedTeam.getEndTime());
 
         //send the updated time to the appropriate client
         String destination = "/topic/time/" + mysteryCompletionDto.getTeamName().replace(" ","");
@@ -147,5 +165,16 @@ public class MysteryService {
         mysteryQuestionDao.delete(questionToBeRemoved);
 
         return questionToBeRemoved;
+    }
+
+    //method to get all mystery questions
+    @Transactional
+    public List<MysteryQuestion> getAllMysteryQuestion() {
+        List<MysteryQuestion> mysteryQuestions = mysteryQuestionDao.findAll();
+        if(mysteryQuestions.isEmpty()) {
+            throw new RuntimeException("No mystery questions found!");
+        } else {
+            return mysteryQuestions;
+        }
     }
 }

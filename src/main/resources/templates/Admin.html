@@ -4,14 +4,134 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Team Leaderboard</title>
-
-    <!-- Link to your glowing starry background CSS -->
     <link rel="stylesheet" th:href="@{/AdminPortal.css}">
+    <style>
+        /* 🔹 Modal Overlay */
+        .modal {
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0; top: 0;
+          width: 100%; height: 100%;
+          background: rgba(0,0,0,0.7);
+          backdrop-filter: blur(4px);
+          justify-content: center;
+          align-items: center;
+        }
+
+        /* 🔹 Modal Box */
+        .modal-content {
+          background: rgba(10, 25, 47, 0.95);
+          padding: 2rem;
+          border-radius: 15px;
+          width: 400px;
+          box-shadow: 0 0 20px rgba(0,213,255,0.6);
+          color: #e0eaff;
+          text-align: center;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 🔹 Input fields */
+        .modal-content input {
+          width: 90%;
+          margin: 10px 0;
+          padding: 0.5rem;
+          background: transparent;
+          border: 1px solid rgba(0,213,255,0.6);
+          border-radius: 6px;
+          color: #fff;
+          font-size: 1rem;
+        }
+
+        /* 🔹 Buttons inside modal */
+        .modal-buttons {
+          margin-top: 1rem;
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .modal-buttons button {
+          flex: 1;
+          padding: 0.6rem;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: 0.3s;
+        }
+
+        .btn-add { background: #00bfff; color: #fff; }
+        .btn-add:hover { background: #008fcc; }
+
+        .btn-edit { background: #32cd32; color: #fff; }
+        .btn-edit:hover { background: #28a428; }
+
+        .btn-delete { background: #ff4d4d; color: #fff; }
+        .btn-delete:hover { background: #cc0000; }
+
+        .btn-close {
+          margin-top: 1rem;
+          background: transparent;
+          border: none;
+          color: #9bbcff;
+          cursor: pointer;
+          font-size: 0.9rem;
+          text-decoration: underline;
+        }
+
+        /* Small "+" button inside leaderboard row */
+        .plus-btn {
+          background: #00bfff;
+          border: none;
+          border-radius: 50%;
+          padding: 0.3rem 0.6rem;
+          font-size: 1rem;
+          font-weight: bold;
+          color: white;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+        .plus-btn:hover {
+          background: #008fcc;
+        }
+
+        /* 🔹 Sort Button (bottom middle) */
+        .sort-btn {
+          display: block;
+          margin: 2rem auto 0 auto;
+          padding: 0.8rem 2rem;
+          background: #ffcc00;
+          color: #000;
+          font-weight: 700;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: 0.3s;
+          box-shadow: 0 0 12px rgba(255, 204, 0, 0.7);
+        }
+        .sort-btn:hover {
+          background: #e6b800;
+        }
+
+        /* 🔹 Delete Confirmation Modal */
+        .delete-modal .modal-content {
+          background: rgba(47, 0, 0, 0.95);
+          box-shadow: 0 0 20px rgba(255,0,0,0.8);
+        }
+        .delete-modal h3 {
+          color: #ff4d4d;
+        }
+    </style>
 </head>
 <body>
 <div class="main-container">
     <div class="glow-card">
-        <!-- Make the title pop with a glow and maybe a short subtitle like “Top Performers”-->
         <h2 class="card-title">🌟 Team Leaderboard 🌟</h2>
         <p class="card-subtitle">Top Performers of the Season</p>
 
@@ -20,18 +140,115 @@
                 <span class="serial-col">No.</span>
                 <span class="team-col">Team Name</span>
                 <span class="points-col">Points</span>
+                <!--<span class="actions-col">Actions</span>-->
             </div>
 
-
-            <!-- Loop through teams from DB -->
-            <div th:each="team, iterStat : ${teams}" class="leaderboard-row">
+            <!-- Loop through teams -->
+            <div th:each="team, iterStat : ${teams}" class="leaderboard-row"
+                 th:classappend="${iterStat.index == 0 ? ' first' :
+                      (iterStat.index == 1 ? ' second' :
+                      (iterStat.index == 2 ? ' third' : ''))}">
                 <span class="serial-col" th:text="${iterStat.index + 1}">1</span>
                 <span class="team-col" th:text="${team.teamName}">Team Name</span>
                 <span class="points-col" th:text="${team.points}">0</span>
+                <span class="actions-col">
+        <button class="plus-btn"
+                th:attr="data-name=${team.teamName},data-points=${team.points},data-id=${team.id}"
+                onclick="openModal(this)">+</button>
+    </span>
             </div>
 
         </div>
+
+        <!-- Sort Button -->
+        <button class="sort-btn" onclick="sortTeams()">Sort</button>
     </div>
 </div>
+
+<!-- 🔹 Edit Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3>Team Management</h3>
+        <input type="hidden" id="teamId">
+        <input type="text" id="teamName" placeholder="Team Name">
+        <input type="number" id="teamPoints" placeholder="Points">
+        <div class="modal-buttons">
+            <button class="btn-add" onclick="addTeam()">Add</button>
+            <button class="btn-edit" onclick="editTeam()">Edit</button>
+            <button class="btn-delete" onclick="confirmDelete()">Delete</button>
+        </div>
+        <button class="btn-close" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- 🔹 Delete Confirmation Modal -->
+<div id="deleteModal" class="modal delete-modal">
+    <div class="modal-content">
+        <h3>Are you really want to Delete it?</h3>
+        <div class="modal-buttons">
+            <button class="btn-delete" onclick="deleteTeam()">Yes, Delete</button>
+            <button class="btn-close" onclick="closeDeleteModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("editModal");
+    const deleteModal = document.getElementById("deleteModal");
+    const teamNameInput = document.getElementById("teamName");
+    const teamPointsInput = document.getElementById("teamPoints");
+    const teamIdInput = document.getElementById("teamId");
+
+    function openModal(button) {
+      const name = button.getAttribute("data-name");
+      const points = button.getAttribute("data-points");
+      const id = button.getAttribute("data-id");
+
+      teamNameInput.value = name;
+      teamPointsInput.value = points;
+      teamIdInput.value = id;
+
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+    }
+
+    function confirmDelete() {
+      modal.style.display = "none";
+      deleteModal.style.display = "flex";
+    }
+
+    function closeDeleteModal() {
+      deleteModal.style.display = "none";
+    }
+
+    function addTeam() {
+      alert("Adding new team: " + teamNameInput.value);
+      closeModal();
+    }
+
+    function editTeam() {
+      alert("Editing team " + teamIdInput.value + ": " + teamNameInput.value + " with " + teamPointsInput.value + " points");
+      closeModal();
+    }
+
+    function deleteTeam() {
+      alert("Deleted team " + teamIdInput.value);
+      closeDeleteModal();
+    }
+
+    function sortTeams() {
+      alert("Sorting teams by points...");
+      // Here you'd implement sorting logic
+    }
+
+    // Close modals on outside click
+    window.onclick = function(e) {
+      if (e.target == modal) closeModal();
+      if (e.target == deleteModal) closeDeleteModal();
+    }
+</script>
 </body>
 </html>
