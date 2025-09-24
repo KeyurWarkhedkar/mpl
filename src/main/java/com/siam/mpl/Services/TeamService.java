@@ -68,7 +68,7 @@ public class TeamService {
         if(teamUpdateDto.getPoints() != null) {
             teamForUpdate.setPoints(teamUpdateDto.getPoints());
         }
-        if(teamUpdateDto.getMysteryQuestionId() != null) {
+        /*if(teamUpdateDto.getMysteryQuestionId() != null) {
             //check if there is any such mystery question in the db
             Optional<MysteryQuestion> optionalMysteryQuestion = mysteryQuestionDao.findById(teamUpdateDto.getMysteryQuestionId());
 
@@ -87,7 +87,7 @@ public class TeamService {
                 teamForUpdate.setMysteryQuestion(newMysteryQuestion);
                 newMysteryQuestion.setQuestionStatus(QuestionStatus.ALLOCATED);
             }
-        }
+        }*/
 
         return teamDao.save(teamForUpdate);
     }

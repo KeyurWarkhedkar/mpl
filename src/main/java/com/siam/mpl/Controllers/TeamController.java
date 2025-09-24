@@ -3,6 +3,7 @@ package com.siam.mpl.Controllers;
 import com.siam.mpl.DTOs.TeamUpdateDto;
 import com.siam.mpl.Entities.Teams;
 import com.siam.mpl.Services.TeamService;
+import jakarta.validation.Valid;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ public class TeamController {
 
     //method to update team details
     @PatchMapping(value="/team/update/{id}")
-    public ResponseEntity<Teams> updateTeam(@PathVariable int id, @RequestBody TeamUpdateDto teamUpdateDto) {
+    public ResponseEntity<Teams> updateTeam(@PathVariable int id,@Valid @RequestBody TeamUpdateDto teamUpdateDto) {
         return new ResponseEntity<>(teamService.updateTeamDetails(id, teamUpdateDto), HttpStatus.OK);
     }
 

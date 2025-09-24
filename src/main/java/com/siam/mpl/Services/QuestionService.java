@@ -9,17 +9,25 @@ import com.siam.mpl.Entities.Teams;
 import com.siam.mpl.Repositories.QuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import com.siam.mpl.Repositories.TeamQuestionDao;
+import jakarta.persistence.PessimisticLockException;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
+import javax.naming.ServiceUnavailableException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class QuestionService {
     //fields
     TeamDao teamDao;
@@ -33,17 +41,38 @@ public class QuestionService {
         this.teamQuestionDao = teamQuestionDao;
     }
 
+    @Retryable(
+            value = {
+                    DeadlockLoserDataAccessException.class,
+                    CannotAcquireLockException.class,
+                    PessimisticLockException.class
+            },
+            maxAttempts = 4,  // Try 4 times total (1 initial + 3 retries)
+            backoff = @Backoff(
+                    delay = 50,      // Start with 50ms delay
+                    multiplier = 2,  // Double each time: 50ms, 100ms, 200ms
+                    maxDelay = 1000, // Cap at 1 second
+                    random = true    // Add randomness to prevent thundering herd
+    ))
+    @Transactional
+    public Question tryToGetQuestion(QuestionDto questionDto) {
+
+        log.debug("Processing question request for team: {}", questionDto.getTeamName());
+
+        try {
+            return getQuestion(questionDto);
+
+        } catch (DeadlockLoserDataAccessException ex) {
+            log.warn("Deadlock detected for team: {}, attempt will be retried",
+                    questionDto.getTeamName());
+            throw ex; // Re-throw to trigger retry
+        }
+    }
+
     //method to get the main question for each team from db
     @Transactional
     public Question getQuestion(QuestionDto questionDto) {
-        if(questionDto.getTeamName() == null) {
-            throw new IllegalArgumentException("Team name is empty!");
-        }
-        if(questionDto.getQuestionId() == null) {
-            throw new IllegalArgumentException("Question id is empty!");
-        }
-
-        Optional<Question> optionalQuestion = questionDao.findById(questionDto.getQuestionId());
+        Optional<Question> optionalQuestion = questionDao.findByIdWithLock(questionDto.getQuestionId());
 
         if(optionalQuestion.isEmpty()) {
             throw new RuntimeException("No question with the given id found!");
@@ -52,6 +81,15 @@ public class QuestionService {
         Question question = optionalQuestion.get();
         String teamName = questionDto.getTeamName();
 
+        //fetch team with pessimistic lock
+        Optional<Teams> optionalTeam = teamDao.findByTeamName(teamName);
+
+        //if team exists then return its assigned question
+        if(optionalTeam.isPresent()) {
+            Optional<TeamQuestion> optionalTeamQuestion = teamQuestionDao.findByTeamId(optionalTeam.get().getId());
+            return optionalTeamQuestion.get().getQuestion();
+        }
+
         saveTeamAndAssignQuestion(teamName, question);
 
         return question;
@@ -59,12 +97,6 @@ public class QuestionService {
 
     //method to save team in db and assign them a question
     public void saveTeamAndAssignQuestion(String teamName, Question question) {
-        Optional<Teams> optionalTeam = teamDao.findByTeamName(teamName);
-
-        if(optionalTeam.isPresent()) {
-            throw new RuntimeException("Team with this name already exists!");
-        }
-
         Optional<TeamQuestion> optionalTeamQuestion = teamQuestionDao.findByQuestionId(question.getId());
 
         if(optionalTeamQuestion.isPresent()) {
@@ -97,6 +129,16 @@ public class QuestionService {
         } catch(DataIntegrityViolationException exception) {
             throw new RuntimeException("This question is already allotted to a team!");
         }
+    }
+
+    @Recover
+    public Question recoverFromDeadlock(Exception ex, QuestionDto questionDto) {
+        log.error("Failed to get question for team: {} after all retry attempts. Error: {}",
+                questionDto.getTeamName(), ex.getMessage());
+
+        //Return user-friendly error
+        throw new RuntimeException(
+                "Service is experiencing high traffic. Please try again in a few moments.");
     }
 
     //method to add a new question

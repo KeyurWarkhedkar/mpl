@@ -5,6 +5,7 @@ import com.siam.mpl.DTOs.QuestionDto;
 import com.siam.mpl.DTOs.QuestionUpdateDto;
 import com.siam.mpl.Entities.Question;
 import com.siam.mpl.Services.QuestionService;
+import jakarta.validation.Valid;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +23,8 @@ public class QuestionController {
 
     //method to receive request to get initial question from db
     @PostMapping(value="/question/get")
-    public ResponseEntity<Question> getQuestion(@RequestBody QuestionDto questionDto) {
-        return new ResponseEntity<>(questionService.getQuestion(questionDto), HttpStatus.OK);
+    public ResponseEntity<Question> getQuestion(@Valid @RequestBody QuestionDto questionDto) {
+        return new ResponseEntity<>(questionService.tryToGetQuestion(questionDto), HttpStatus.OK);
     }
 
     //method to remove a question from db
@@ -34,13 +35,13 @@ public class QuestionController {
 
     //method to add a question
     @PostMapping(value="/question/add")
-    public ResponseEntity<Question> addQuestion(@RequestBody NewQuestionDto newQuestionDto) {
+    public ResponseEntity<Question> addQuestion(@Valid @RequestBody NewQuestionDto newQuestionDto) {
         return new ResponseEntity<>(questionService.addQuestion(newQuestionDto), HttpStatus.OK);
     }
 
     //method to update a question by id
     @PatchMapping(value="/question/update/{id}")
-    public ResponseEntity<Question> updateQuestion(@PathVariable String id, @RequestBody QuestionUpdateDto questionUpdateDto) {
+    public ResponseEntity<Question> updateQuestion(@PathVariable String id,@Valid @RequestBody QuestionUpdateDto questionUpdateDto) {
         return new ResponseEntity<>(questionService.updateQuestion(id, questionUpdateDto), HttpStatus.OK);
     }
 }
