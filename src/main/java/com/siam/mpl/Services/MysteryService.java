@@ -150,7 +150,7 @@ public class MysteryService {
 
         //send the updated time to the appropriate client
         String destination = "/topic/time/" + mysteryCompletionDto.getTeamName().replace(" ","");
-        simpMessagingTemplate.convertAndSend(destination, new MysteryCompletionResponseDto(updatedTime, mysteryCompletedTeam.getPoints()));
+        simpMessagingTemplate.convertAndSend(destination, new MysteryCompletionResponseDto(updatedTime.toSeconds(), mysteryCompletedTeam.getPoints()));
 
         //set the mystery question of the team to be null so that the team can bid for new
         //mystery questions.

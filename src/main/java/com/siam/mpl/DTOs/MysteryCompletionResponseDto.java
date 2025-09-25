@@ -1,9 +1,6 @@
 package com.siam.mpl.DTOs;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Duration;
 
@@ -11,7 +8,8 @@ import java.time.Duration;
 @NoArgsConstructor
 @Getter
 @Setter
+@Data
 public class MysteryCompletionResponseDto {
-    private Duration updatedTime;
+    private long updatedTime;
     private int updatedPoints;
 }

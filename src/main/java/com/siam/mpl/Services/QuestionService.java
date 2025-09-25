@@ -215,12 +215,32 @@ public class QuestionService {
     //method to handle question submit
     @Transactional
     public void handleQuestionSubmission(QuestionResponseDto questionResponseDto) {
+        log.info("Request for submission of main question for team {}", questionResponseDto.getTeamName());
         Optional<Teams> optionalTeam = teamDao.findByTeamName(questionResponseDto.getTeamName());
 
         if(optionalTeam.isEmpty()) {
+            log.error("Team {} is not registered", questionResponseDto.getTeamName());
             throw new RuntimeException("No team with the given name found!");
         }
 
-        optionalTeam.get().setPoints(optionalTeam.get().getPoints() + 100);
+        Teams victoryTeam = optionalTeam.get();
+
+        Optional<TeamQuestion> optionalTeamQuestion = teamQuestionDao.findByTeamId(victoryTeam.getId());
+        if(optionalTeamQuestion.isEmpty()) {
+            log.error("Team {} has no question allotted to them", victoryTeam.getTeamName());
+            throw new RuntimeException("No question is allotted to this team");
+        }
+
+        Duration remainingTime = Duration.between(LocalDateTime.now(), victoryTeam.getEndTime());
+        long remainingSeconds = remainingTime.getSeconds();
+
+        if (remainingSeconds < 0) {
+            remainingSeconds = 0;
+        }
+
+        victoryTeam.setPoints((int)(victoryTeam.getPoints() + (remainingSeconds * 0.5)));
+
+        teamDao.save(victoryTeam);
+        log.info("Team {} points updated successfully after submission of main question", victoryTeam.getTeamName());
     }
 }
