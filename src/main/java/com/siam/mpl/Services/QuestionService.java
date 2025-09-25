@@ -75,6 +75,7 @@ public class QuestionService {
         Optional<Question> optionalQuestion = questionDao.findByIdWithLock(questionDto.getQuestionId());
 
         if(optionalQuestion.isEmpty()) {
+            log.error("No question found with the given id for team {}", questionDto.getTeamName());
             throw new RuntimeException("No question with the given id found!");
         }
 
@@ -86,6 +87,7 @@ public class QuestionService {
 
         //if team exists then return its assigned question
         if(optionalTeam.isPresent()) {
+            log.info("Team {} has already got a question!", optionalTeam.get().getTeamName());
             Optional<TeamQuestion> optionalTeamQuestion = teamQuestionDao.findByTeamId(optionalTeam.get().getId());
             return optionalTeamQuestion.get().getQuestion();
         }
@@ -100,19 +102,21 @@ public class QuestionService {
         Optional<TeamQuestion> optionalTeamQuestion = teamQuestionDao.findByQuestionId(question.getId());
 
         if(optionalTeamQuestion.isPresent()) {
+            log.error("The question that team {} is trying to get is already allotted to some team", teamName);
             throw new RuntimeException("This question is already allotted to some team");
         }
 
         //create new team and save in db
         Teams newTeam = new Teams();
         newTeam.setTeamName(teamName);
-        newTeam.setPoints(100);
+        newTeam.setPoints(1000);
         newTeam.setEndTime(LocalDateTime.now().plus(Duration.ofMinutes(30)));
 
         //check for concurrent transactions passing the initial check
         //unique constraint acting as last line of defence
         try {
             teamDao.save(newTeam);
+            log.info("Team {} successfully registered!", teamName);
         } catch(DataIntegrityViolationException ex) {
             throw new RuntimeException("Team with this name already exists!");
         }
@@ -126,6 +130,7 @@ public class QuestionService {
         //unique constraint acting as last line of defence
         try {
             teamQuestionDao.save(newTeamQuestion);
+            log.info("Team {} was allotted question {} successfully!", teamName, question.getId());
         } catch(DataIntegrityViolationException exception) {
             throw new RuntimeException("This question is already allotted to a team!");
         }

@@ -10,6 +10,7 @@ import com.siam.mpl.Enums.QuestionStatus;
 import com.siam.mpl.Repositories.MysteryQuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class MysteryService {
     //fields
@@ -36,10 +38,12 @@ public class MysteryService {
     //method to return mystery question from db and assign to a team
     @Transactional
     public MysteryQuestion assignMysteryQuestion(MysteryBoxDto mysteryBoxDto) {
+        log.info("Request for team {} received for mystery question!", mysteryBoxDto.getTeamName());
         //find the team from db with pessimistic lock
         Optional<Teams> optionalTeam = teamDao.findByTeamNameWithLock(mysteryBoxDto.getTeamName());
 
         if(optionalTeam.isEmpty()) {
+            log.error("Team {} has not registered yet. Cannot process request to assign mystery question.", mysteryBoxDto.getTeamName());
             throw new RuntimeException("No team with such name exists!");
         }
 
@@ -47,6 +51,7 @@ public class MysteryService {
 
         //check if the team has already a question allotted to them
         if(team.getMysteryQuestion() != null) {
+            log.info("Team {} has already been allotted a mystery question. Cannot process request to assign mystery question.", team.getTeamName());
             return team.getMysteryQuestion();
         }
 
@@ -54,6 +59,7 @@ public class MysteryService {
         List<MysteryQuestion> mysteryQuestions = mysteryQuestionDao.findByDifficultyAndQuestionStatus(mysteryBoxDto.getDifficulty(), QuestionStatus.UNALLOCATED);
 
         if(mysteryQuestions.isEmpty()) {
+            log.error("No questions available to allot for team {}. Cannot process request to assign mystery question", team.getTeamName());
             throw new RuntimeException("No questions available!");
         }
 
@@ -64,6 +70,7 @@ public class MysteryService {
         team.setPoints(team.getPoints() - mysteryBoxDto.getPointsDeducted());
         try {
             teamDao.save(team);
+            log.info("Mystery question successfully allotted to team {}", team.getTeamName());
         } catch(DataIntegrityViolationException ex) {
             throw new RuntimeException("A team with this id already exists!");
         }
@@ -104,10 +111,12 @@ public class MysteryService {
     //method to add bonus time to the team whose mystery question is solved
     @Transactional
     public String mysterySuccessHandle(MysteryCompletionDto mysteryCompletionDto) {
+        log.info("Request for bonus time received for team {}", mysteryCompletionDto.getTeamName());
         //get the team whose timer need to be updated with pessimistic lock
-        Optional<Teams> optionalTeam = teamDao.findByTeamName(mysteryCompletionDto.getTeamName());
+        Optional<Teams> optionalTeam = teamDao.findByTeamNameWithLock(mysteryCompletionDto.getTeamName());
 
         if(optionalTeam.isEmpty()) {
+            log.error("Team {} does not exists!", mysteryCompletionDto.getTeamName());
             throw new RuntimeException("No team with the given name found!");
         }
 
@@ -115,23 +124,26 @@ public class MysteryService {
 
         //check if the team has already submitted a mystery question or has no mystery question assigned
         if(mysteryCompletedTeam.getMysteryQuestion() == null) {
+            log.error("No mystery question is allotted to team {}. Cannot process bonus time request!", mysteryCompletedTeam.getTeamName());
             throw new RuntimeException("No mystery questions is assigned to your team!");
         }
-
-        //set the mystery question of the team to be null so that the team can bid for new
-        //mystery questions.
-        mysteryCompletedTeam.setMysteryQuestion(null);
 
         //calculate the updated remaining time for the team
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime endTime = mysteryCompletedTeam.getEndTime();
         Duration timeRemaining = Duration.between(now, endTime);
-        if(timeRemaining.isNegative()) {
+        /*if(timeRemaining.isNegative()) {
+            log.error("Team {} exhausted their time for main question. Cannot process request for bonus time", mysteryCompletedTeam.getTeamName());
             throw new RuntimeException("You have exhausted your time for the main question!");
-        }
+        }*/
 
         //also update the end time for the team for successful handle of next bonus updates before saving
-        mysteryCompletedTeam.setEndTime(endTime.plus(Duration.ofMinutes(5)));
+        if(mysteryCompletedTeam.getMysteryQuestion().getDifficulty().equalsIgnoreCase("EASY")) {
+            mysteryCompletedTeam.setEndTime(endTime.plus(Duration.ofMinutes(5)));
+        } else {
+            mysteryCompletedTeam.setEndTime(endTime.plus(Duration.ofMinutes(10)));
+        }
+
 
         //get the new remaining time for the team
         Duration updatedTime = Duration.between(now, mysteryCompletedTeam.getEndTime());
@@ -140,7 +152,13 @@ public class MysteryService {
         String destination = "/topic/time/" + mysteryCompletionDto.getTeamName().replace(" ","");
         simpMessagingTemplate.convertAndSend(destination, new MysteryCompletionResponseDto(updatedTime, mysteryCompletedTeam.getPoints()));
 
+        //set the mystery question of the team to be null so that the team can bid for new
+        //mystery questions.
+        mysteryCompletedTeam.setMysteryQuestion(null);
+
         teamDao.save(mysteryCompletedTeam);
+
+        log.info("Successfully added bonus time for team {}", mysteryCompletedTeam.getTeamName());
 
         return "Congratulations! Your team just earned some bonus time.";
     }
