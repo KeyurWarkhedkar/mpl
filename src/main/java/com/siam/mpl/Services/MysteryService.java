@@ -132,10 +132,10 @@ public class MysteryService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime endTime = mysteryCompletedTeam.getEndTime();
         Duration timeRemaining = Duration.between(now, endTime);
-        /*if(timeRemaining.isNegative()) {
+        if(timeRemaining.isNegative()) {
             log.error("Team {} exhausted their time for main question. Cannot process request for bonus time", mysteryCompletedTeam.getTeamName());
             throw new RuntimeException("You have exhausted your time for the main question!");
-        }*/
+        }
 
         //also update the end time for the team for successful handle of next bonus updates before saving
         if(mysteryCompletedTeam.getMysteryQuestion().getDifficulty().equalsIgnoreCase("EASY")) {
