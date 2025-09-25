@@ -1,0 +1,14 @@
+name: Keep Service Alive
+
+on:
+  schedule:
+    - cron: "*/7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  keep-api-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Service to keep it alive
+        run: |
+          curl -X GET "https://mpl-25-r1-be.onrender.com/team/getAll" || echo "API not responding"
