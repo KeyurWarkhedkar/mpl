@@ -2,6 +2,7 @@ package com.siam.mpl.Services;
 
 import com.siam.mpl.DTOs.NewQuestionDto;
 import com.siam.mpl.DTOs.QuestionDto;
+import com.siam.mpl.DTOs.QuestionResponseDto;
 import com.siam.mpl.DTOs.QuestionUpdateDto;
 import com.siam.mpl.Entities.Question;
 import com.siam.mpl.Entities.TeamQuestion;
@@ -209,5 +210,17 @@ public class QuestionService {
         } else {
             return questions;
         }
+    }
+
+    //method to handle question submit
+    @Transactional
+    public void handleQuestionSubmission(QuestionResponseDto questionResponseDto) {
+        Optional<Teams> optionalTeam = teamDao.findByTeamName(questionResponseDto.getTeamName());
+
+        if(optionalTeam.isEmpty()) {
+            throw new RuntimeException("No team with the given name found!");
+        }
+
+        optionalTeam.get().setPoints(optionalTeam.get().getPoints() + 100);
     }
 }

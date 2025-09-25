@@ -2,11 +2,13 @@ package com.siam.mpl.Controllers;
 
 import com.siam.mpl.DTOs.NewQuestionDto;
 import com.siam.mpl.DTOs.QuestionDto;
+import com.siam.mpl.DTOs.QuestionResponseDto;
 import com.siam.mpl.DTOs.QuestionUpdateDto;
 import com.siam.mpl.Entities.Question;
 import com.siam.mpl.Services.QuestionService;
 import jakarta.validation.Valid;
 import org.apache.coyote.Response;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,5 +45,12 @@ public class QuestionController {
     @PatchMapping(value="/question/update/{id}")
     public ResponseEntity<Question> updateQuestion(@PathVariable String id,@Valid @RequestBody QuestionUpdateDto questionUpdateDto) {
         return new ResponseEntity<>(questionService.updateQuestion(id, questionUpdateDto), HttpStatus.OK);
+    }
+
+    //method to handle main question submission
+    @PostMapping(value="/question/result")
+    public ResponseEntity<Void> questionSubmit(@Valid @RequestBody QuestionResponseDto questionResponseDto) {
+        questionService.handleQuestionSubmission(questionResponseDto);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
