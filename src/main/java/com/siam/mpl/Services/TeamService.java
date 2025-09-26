@@ -1,5 +1,6 @@
 package com.siam.mpl.Services;
 
+import com.siam.mpl.DTOs.MysteryCompletionResponseDto;
 import com.siam.mpl.DTOs.TeamUpdateDto;
 import com.siam.mpl.Entities.MysteryQuestion;
 import com.siam.mpl.Entities.TeamQuestion;
@@ -9,23 +10,28 @@ import com.siam.mpl.Repositories.MysteryQuestionDao;
 import com.siam.mpl.Repositories.TeamDao;
 import com.siam.mpl.Repositories.TeamQuestionDao;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class TeamService {
     //fields
     TeamDao teamDao;
     TeamQuestionDao teamQuestionDao;
     MysteryQuestionDao mysteryQuestionDao;
+    SimpMessagingTemplate simpMessagingTemplate;
 
     //dependency injection
-    public TeamService(TeamDao teamDao, TeamQuestionDao teamQuestionDao, MysteryQuestionDao mysteryQuestionDao) {
+    public TeamService(TeamDao teamDao, TeamQuestionDao teamQuestionDao, MysteryQuestionDao mysteryQuestionDao, SimpMessagingTemplate simpMessagingTemplate) {
         this.teamDao = teamDao;
         this.teamQuestionDao = teamQuestionDao;
         this.mysteryQuestionDao = mysteryQuestionDao;
+        this.simpMessagingTemplate = simpMessagingTemplate;
     }
 
     //method to delete a team from the database
@@ -53,9 +59,11 @@ public class TeamService {
     //method to update the team details
     @Transactional
     public Teams updateTeamDetails(int id, TeamUpdateDto teamUpdateDto) {
+        log.info("Request for update for team {} from admin received", teamUpdateDto.getTeamName());
         Optional<Teams> optional = teamDao.findById(id);
 
         if(optional.isEmpty()) {
+            log.error("Team {} is not registered. Cannot update team details", teamUpdateDto.getTeamName());
             throw new RuntimeException("No team with the given id found!");
         }
 
@@ -63,10 +71,17 @@ public class TeamService {
 
         //update the details which are not null
         if(teamUpdateDto.getTeamName() != null) {
+            log.info("Team name updated successfully");
             teamForUpdate.setTeamName(teamUpdateDto.getTeamName());
         }
         if(teamUpdateDto.getPoints() != null) {
             teamForUpdate.setPoints(teamUpdateDto.getPoints());
+
+            //send the updated time to the appropriate client
+            String destination = "/topic/time/" + teamForUpdate.getTeamName().replace(" ","");
+            simpMessagingTemplate.convertAndSend(destination, teamForUpdate.getPoints());
+
+            log.info("Team points update successfully");
         }
         /*if(teamUpdateDto.getMysteryQuestionId() != null) {
             //check if there is any such mystery question in the db

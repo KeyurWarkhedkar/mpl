@@ -89,21 +89,33 @@ public class MysteryService {
     //method to quit a mystery question assigned to a team
     @Transactional
     public String quitMysteryQuestion(MysteryCompletionDto mysteryCompletionDto) {
+        log.info("Request to quit mystery question for team {} received", mysteryCompletionDto.getTeamName());
         Optional<Teams> optionalTeam = teamDao.findByTeamName(mysteryCompletionDto.getTeamName());
 
         if(optionalTeam.isEmpty()) {
+            log.error("Team {} is not registered. Cannot skip mystery question", mysteryCompletionDto.getTeamName());
             throw new RuntimeException("No team with the given name found!");
         }
 
         Teams quittingTeam = optionalTeam.get();
 
         if(quittingTeam.getMysteryQuestion() == null) {
+            log.error("No mystery question is allotted to team {}. Cannot skip mystery question", quittingTeam.getTeamName());
             throw new RuntimeException("There was no mystery question allotted to the team!");
         }
+
+        //get the remaining time of the quitting team
+        long remainingSeconds = Duration.between(LocalDateTime.now(), quittingTeam.getEndTime()).toSeconds();
 
         //set the mystery question of the team to null and save updated values to the db
         quittingTeam.setMysteryQuestion(null);
         teamDao.save(quittingTeam);
+
+        //send the updated time to the appropriate client
+        String destination = "/topic/time/" + mysteryCompletionDto.getTeamName().replace(" ","");
+        simpMessagingTemplate.convertAndSend(destination, new MysteryCompletionResponseDto(remainingSeconds, quittingTeam.getPoints()));
+
+        log.info("Mystery question for team {} skipped successfully", quittingTeam.getTeamName());
 
         return "Question skipped successfully!";
     }
