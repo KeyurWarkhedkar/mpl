@@ -232,6 +232,13 @@ public class QuestionService {
         }
 
         Duration remainingTime = Duration.between(LocalDateTime.now(), victoryTeam.getEndTime());
+
+        //check if they have exhausted their time for main question
+        if(remainingTime.isNegative()) {
+            log.error("Team {} exhausted their time for main question. Cannot submit question", victoryTeam.getTeamName());
+            throw new RuntimeException("You have exhausted your time. Cannot submit question");
+        }
+
         long remainingSeconds = remainingTime.getSeconds();
 
         if (remainingSeconds < 0) {
