@@ -68,6 +68,13 @@ public class MysteryService {
         //assign the question and set its status to ALLOCATED and save updated values to db
         team.setMysteryQuestion(mysteryQuestionToBeAllocated);
         team.setPoints(team.getPoints() - mysteryBoxDto.getPointsDeducted());
+
+        //check if their exhausted their points
+        if(team.getPoints() < 0) {
+            log.error("Team {} have exhausted their points. Cannot assign mystery question.", team.getTeamName());
+            throw new RuntimeException("You have exhausted your points!");
+        }
+
         try {
             teamDao.save(team);
             log.info("Mystery question successfully allotted to team {}", team.getTeamName());
