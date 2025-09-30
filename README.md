@@ -110,7 +110,7 @@ public Question getQuestion(QuestionDto questionDto) {
 SELECT COUNT(*) FROM teams;                         -- Result: 250
 SELECT COUNT(*) FROM team_question;                 -- Result: 250
 SELECT question_id, COUNT(*) FROM team_question 
-  GROUP BY question_id HAVING COUNT(*) > 1;        -- Result: Empty (0 duplicates)
+GROUP BY question_id HAVING COUNT(*) > 1;        -- Result: Empty (0 duplicates)
 ```
 
 **Key Achievement:** Under extreme concurrent load (330 teams competing for 250 limited questions), the system correctly assigned all 250 questions with zero race conditions, zero duplicate assignments, and maintained sub-120ms P95 response times.
