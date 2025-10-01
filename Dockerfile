@@ -1,23 +1,13 @@
-# Stage 1: Build the application
-FROM eclipse-temurin:21-jdk-jammy AS builder
+# Stage 1: Build
+FROM maven:3.9.1-eclipse-temurin-17 AS build
 WORKDIR /app
-# Copy the Maven wrapper files and the pom.xml
-COPY .mvn .mvn
-COPY mvnw .
 COPY pom.xml .
-# Grant execute permission to the Maven wrapper script
-RUN chmod +x ./mvnw
-# Copy the application source code
 COPY src ./src
-# Build the project and create the executable JAR
-RUN ./mvnw clean install -DskipTests
+RUN mvn clean package -DskipTests
 
-# Stage 2: Create the final image
-FROM eclipse-temurin:21-jre-jammy
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jdk-focal
 WORKDIR /app
-# Copy the executable JAR from the builder stage
-COPY --from=builder /app/target/mpl-0.0.1-SNAPSHOT.jar .
-# Expose the application port
+COPY --from=build /app/target/mpl-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-# Set the entry point to run the application
-ENTRYPOINT ["java", "-jar", "mpl-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]
