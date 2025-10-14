@@ -63,7 +63,7 @@ public class MysteryService {
             throw new RuntimeException("No questions available!");
         }
 
-        MysteryQuestion mysteryQuestionToBeAllocated = mysteryQuestions.getFirst();
+        MysteryQuestion mysteryQuestionToBeAllocated = mysteryQuestions.get(0);
 
         //assign the question and set its status to ALLOCATED and save updated values to db
         team.setMysteryQuestion(mysteryQuestionToBeAllocated);
