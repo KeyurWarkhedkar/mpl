@@ -1,4 +1,4 @@
-# Real-Time Competitive Quiz Platform
+# Math Premier League Portal
 
 A multi-team quiz platform with concurrent question assignment, real-time leaderboard updates, and race condition prevention at scale.
 
